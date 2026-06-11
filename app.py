@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import os
 import re
+from html import escape
 from collections import deque
 from datetime import datetime, timezone
 from pathlib import Path
@@ -31,9 +32,17 @@ received_messages: deque[dict[str, Any]] = deque(maxlen=MAX_MESSAGES)
 
 OTP_PATTERN = re.compile(r"\b\d{4,8}\b")
 
+
+def build_app_description() -> str:
+    base = "Webhook server to receive SMS and OTP messages on your Twilio number."
+    if TWILIO_PHONE_NUMBER:
+        return f"{base}\n\n**Active Twilio number:** `{TWILIO_PHONE_NUMBER}`"
+    return f"{base}\n\n**Active Twilio number:** _Not configured — set `TWILIO_PHONE_NUMBER` in `.env`_"
+
+
 app = FastAPI(
     title="Twilio SMS Receiver",
-    description="Webhook server to receive SMS and OTP messages on your Twilio number.",
+    description=build_app_description(),
     docs_url=None,
 )
 
@@ -96,11 +105,20 @@ async def custom_swagger_ui_html(request: Request) -> HTMLResponse:
         swagger_ui_parameters=app.swagger_ui_parameters,
     )
     content = response.body.decode()
-    injection = (
+    phone_label = escape(TWILIO_PHONE_NUMBER) if TWILIO_PHONE_NUMBER else "Not configured"
+    phone_class = "" if TWILIO_PHONE_NUMBER else " twilio-config-banner__number--missing"
+    head_injection = (
         '<link rel="stylesheet" href="/static/docs-theme.css">\n'
         '<script src="/static/docs-theme.js" defer></script>\n'
     )
-    content = content.replace("</head>", f"{injection}</head>", 1)
+    body_injection = (
+        '<div id="twilio-config-banner" class="twilio-config-banner">'
+        '<span class="twilio-config-banner__label">Active Twilio number:</span>'
+        f'<span class="twilio-config-banner__number{phone_class}">{phone_label}</span>'
+        "</div>\n"
+    )
+    content = content.replace("</head>", f"{head_injection}</head>", 1)
+    content = content.replace("<body>", f"<body>{body_injection}", 1)
     return HTMLResponse(content)
 
 
@@ -157,16 +175,10 @@ async def receive_sms_short(request: Request) -> PlainTextResponse:
     return await _handle_incoming_sms(request)
 
 
-@app.post("/messages/sync")
-def sync_messages_from_twilio(limit: int = 20) -> JSONResponse:
-    """
-    Pull recent inbound messages from Twilio API (useful if webhook was misconfigured).
-    Requires TWILIO_PHONE_NUMBER in .env (e.g. +16184143472).
-    """
-    if not TWILIO_ACCOUNT_SID or not TWILIO_AUTH_TOKEN:
-        raise HTTPException(status_code=500, detail="Twilio credentials not configured")
-    if not TWILIO_PHONE_NUMBER:
-        raise HTTPException(status_code=400, detail="Set TWILIO_PHONE_NUMBER in .env")
+def sync_messages_from_twilio_api(limit: int = 20) -> int:
+    """Pull inbound messages from Twilio into memory. Returns count of newly synced messages."""
+    if not TWILIO_ACCOUNT_SID or not TWILIO_AUTH_TOKEN or not TWILIO_PHONE_NUMBER:
+        return 0
 
     from twilio.rest import Client
 
@@ -175,7 +187,7 @@ def sync_messages_from_twilio(limit: int = 20) -> JSONResponse:
 
     synced = 0
     for msg in twilio_messages:
-        if msg.direction != "inbound":
+        if not (msg.direction or "").startswith("inbound"):
             continue
         body = msg.body or ""
         entry = {
@@ -194,6 +206,30 @@ def sync_messages_from_twilio(limit: int = 20) -> JSONResponse:
             received_messages.appendleft(entry)
             synced += 1
 
+    return synced
+
+
+def ensure_messages_loaded(limit: int = 20) -> None:
+    """Load from Twilio API when memory is empty (e.g. after server restart)."""
+    if not received_messages:
+        sync_messages_from_twilio_api(limit=limit)
+
+
+@app.post("/messages/sync")
+@app.get("/messages/sync")
+def sync_messages_from_twilio(limit: int = 20) -> JSONResponse:
+    """
+    Pull recent inbound messages from Twilio API (useful if webhook was misconfigured).
+    Requires TWILIO_PHONE_NUMBER in .env (e.g. +16184143472).
+    """
+    if not TWILIO_ACCOUNT_SID or not TWILIO_AUTH_TOKEN:
+        raise HTTPException(status_code=500, detail="Twilio credentials not configured")
+    if not TWILIO_PHONE_NUMBER:
+        raise HTTPException(status_code=400, detail="Set TWILIO_PHONE_NUMBER in .env")
+
+    synced = sync_messages_from_twilio_api(limit=limit)
+    limit = max(1, min(limit, MAX_MESSAGES))
+
     return JSONResponse(
         content={
             "synced": synced,
@@ -204,23 +240,29 @@ def sync_messages_from_twilio(limit: int = 20) -> JSONResponse:
 
 
 @app.get("/messages")
-def list_messages(limit: int = 20) -> JSONResponse:
-    """List recently received messages (newest first)."""
+def list_messages(limit: int = 20, sync: bool = True) -> JSONResponse:
+    """List recently received messages (newest first). Auto-syncs from Twilio when empty."""
     limit = max(1, min(limit, MAX_MESSAGES))
+    if sync:
+        ensure_messages_loaded(limit=limit)
     return JSONResponse(content={"count": len(received_messages), "messages": list(received_messages)[:limit]})
 
 
 @app.get("/messages/latest")
-def latest_message() -> JSONResponse:
+def latest_message(sync: bool = True) -> JSONResponse:
     """Return the most recent message — useful for polling OTP during testing."""
+    if sync:
+        ensure_messages_loaded()
     if not received_messages:
         return JSONResponse(content={"message": None})
     return JSONResponse(content={"message": received_messages[0]})
 
 
 @app.get("/otp/latest")
-def latest_otp() -> JSONResponse:
+def latest_otp(sync: bool = True) -> JSONResponse:
     """Return the OTP from the most recent message that contained one."""
+    if sync:
+        ensure_messages_loaded()
     for msg in received_messages:
         if msg["otp"]:
             return JSONResponse(
