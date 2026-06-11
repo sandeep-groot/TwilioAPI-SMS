@@ -8,11 +8,14 @@ import os
 import re
 from collections import deque
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import JSONResponse, PlainTextResponse
+from fastapi.openapi.docs import get_swagger_ui_html
+from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
+from fastapi.staticfiles import StaticFiles
 from twilio.request_validator import RequestValidator
 
 load_dotenv()
@@ -31,7 +34,11 @@ OTP_PATTERN = re.compile(r"\b\d{4,8}\b")
 app = FastAPI(
     title="Twilio SMS Receiver",
     description="Webhook server to receive SMS and OTP messages on your Twilio number.",
+    docs_url=None,
 )
+
+STATIC_DIR = Path(__file__).parent / "static"
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 
 def extract_otp(body: str) -> str | None:
@@ -70,6 +77,31 @@ def validate_twilio_request(request: Request, form_data: dict[str, str]) -> None
 @app.get("/")
 def health() -> dict[str, str]:
     return {"status": "ok", "service": "twilio-sms-receiver"}
+
+
+@app.get("/docs", include_in_schema=False)
+async def custom_swagger_ui_html(request: Request) -> HTMLResponse:
+    """Swagger UI with light/dark theme toggle."""
+    root_path = request.scope.get("root_path", "").rstrip("/")
+    openapi_url = f"{root_path}{app.openapi_url}"
+    oauth2_redirect_url = app.swagger_ui_oauth2_redirect_url
+    if oauth2_redirect_url:
+        oauth2_redirect_url = f"{root_path}{oauth2_redirect_url}"
+
+    response = get_swagger_ui_html(
+        openapi_url=openapi_url,
+        title=f"{app.title} - Docs",
+        oauth2_redirect_url=oauth2_redirect_url,
+        init_oauth=app.swagger_ui_init_oauth,
+        swagger_ui_parameters=app.swagger_ui_parameters,
+    )
+    content = response.body.decode()
+    injection = (
+        '<link rel="stylesheet" href="/static/docs-theme.css">\n'
+        '<script src="/static/docs-theme.js" defer></script>\n'
+    )
+    content = content.replace("</head>", f"{injection}</head>", 1)
+    return HTMLResponse(content)
 
 
 async def _handle_incoming_sms(request: Request) -> PlainTextResponse:

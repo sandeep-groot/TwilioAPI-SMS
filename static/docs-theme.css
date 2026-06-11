@@ -1,0 +1,186 @@
+/* Theme toggle button */
+.theme-toggle-btn {
+  position: fixed;
+  top: 12px;
+  right: 16px;
+  z-index: 9999;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--toggle-border);
+  background: var(--toggle-bg);
+  color: var(--toggle-fg);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  transition: background 0.2s, border-color 0.2s, transform 0.15s;
+}
+
+.theme-toggle-btn:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+}
+
+/* Light theme (Swagger defaults + small polish) */
+html[data-theme="light"] {
+  --toggle-bg: #ffffff;
+  --toggle-fg: #1a1a2e;
+  --toggle-border: #d0d7de;
+}
+
+/* Dark theme */
+html[data-theme="dark"] {
+  --toggle-bg: #2d3748;
+  --toggle-fg: #f7fafc;
+  --toggle-border: #4a5568;
+}
+
+html[data-theme="dark"] body {
+  background: #0f1419;
+}
+
+html[data-theme="dark"] .swagger-ui {
+  color: #e2e8f0;
+}
+
+html[data-theme="dark"] .swagger-ui .topbar {
+  background: #1a202c;
+  border-bottom: 1px solid #2d3748;
+}
+
+html[data-theme="dark"] .swagger-ui .topbar .download-url-wrapper input[type="text"] {
+  background: #2d3748;
+  border-color: #4a5568;
+  color: #e2e8f0;
+}
+
+html[data-theme="dark"] .swagger-ui .info .title,
+html[data-theme="dark"] .swagger-ui .info p,
+html[data-theme="dark"] .swagger-ui .info li,
+html[data-theme="dark"] .swagger-ui .info table,
+html[data-theme="dark"] .swagger-ui .info a {
+  color: #e2e8f0;
+}
+
+html[data-theme="dark"] .swagger-ui .info .base-url {
+  color: #a0aec0;
+}
+
+html[data-theme="dark"] .swagger-ui .scheme-container {
+  background: #1a202c;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+html[data-theme="dark"] .swagger-ui section.models,
+html[data-theme="dark"] .swagger-ui .model-box,
+html[data-theme="dark"] .swagger-ui .model {
+  background: #1a202c;
+}
+
+html[data-theme="dark"] .swagger-ui section.models h4,
+html[data-theme="dark"] .swagger-ui section.models h5,
+html[data-theme="dark"] .swagger-ui .model-title,
+html[data-theme="dark"] .swagger-ui .prop-type,
+html[data-theme="dark"] .swagger-ui .prop-format {
+  color: #cbd5e0;
+}
+
+html[data-theme="dark"] .swagger-ui .opblock-tag {
+  color: #e2e8f0;
+  border-bottom: 1px solid #2d3748;
+}
+
+html[data-theme="dark"] .swagger-ui .opblock-tag small {
+  color: #a0aec0;
+}
+
+html[data-theme="dark"] .swagger-ui .opblock {
+  border-color: #2d3748;
+  background: #1a202c;
+  box-shadow: none;
+}
+
+html[data-theme="dark"] .swagger-ui .opblock .opblock-summary {
+  border-color: #2d3748;
+}
+
+html[data-theme="dark"] .swagger-ui .opblock .opblock-summary-method {
+  color: #fff;
+}
+
+html[data-theme="dark"] .swagger-ui .opblock .opblock-summary-description,
+html[data-theme="dark"] .swagger-ui .opblock .opblock-summary-path,
+html[data-theme="dark"] .swagger-ui .opblock .opblock-summary-path__deprecated {
+  color: #e2e8f0;
+}
+
+html[data-theme="dark"] .swagger-ui .opblock-body pre,
+html[data-theme="dark"] .swagger-ui .opblock-description-wrapper p,
+html[data-theme="dark"] .swagger-ui .opblock-external-docs-wrapper p,
+html[data-theme="dark"] .swagger-ui .opblock-title_normal,
+html[data-theme="dark"] .swagger-ui .parameter__name,
+html[data-theme="dark"] .swagger-ui .parameter__type,
+html[data-theme="dark"] .swagger-ui .parameter__in,
+html[data-theme="dark"] .swagger-ui table thead tr th,
+html[data-theme="dark"] .swagger-ui table thead tr td,
+html[data-theme="dark"] .swagger-ui table tbody tr td,
+html[data-theme="dark"] .swagger-ui .response-col_status,
+html[data-theme="dark"] .swagger-ui .response-col_description,
+html[data-theme="dark"] .swagger-ui .responses-inner h4,
+html[data-theme="dark"] .swagger-ui .responses-inner h5 {
+  color: #e2e8f0;
+}
+
+html[data-theme="dark"] .swagger-ui .opblock-section-header {
+  background: #2d3748;
+  box-shadow: none;
+}
+
+html[data-theme="dark"] .swagger-ui .opblock-section-header h4 {
+  color: #e2e8f0;
+}
+
+html[data-theme="dark"] .swagger-ui textarea,
+html[data-theme="dark"] .swagger-ui input[type="text"],
+html[data-theme="dark"] .swagger-ui input[type="password"],
+html[data-theme="dark"] .swagger-ui input[type="search"],
+html[data-theme="dark"] .swagger-ui input[type="email"],
+html[data-theme="dark"] .swagger-ui input[type="file"],
+html[data-theme="dark"] .swagger-ui select {
+  background: #2d3748;
+  border-color: #4a5568;
+  color: #e2e8f0;
+}
+
+html[data-theme="dark"] .swagger-ui .btn {
+  color: #e2e8f0;
+  border-color: #4a5568;
+}
+
+html[data-theme="dark"] .swagger-ui .btn.cancel {
+  background: #4a5568;
+}
+
+html[data-theme="dark"] .swagger-ui .highlight-code,
+html[data-theme="dark"] .swagger-ui .microlight {
+  background: #0d1117 !important;
+  color: #c9d1d9 !important;
+}
+
+html[data-theme="dark"] .swagger-ui .model-box-control:focus,
+html[data-theme="dark"] .swagger-ui .models-control:focus,
+html[data-theme="dark"] .swagger-ui .opblock-summary-control:focus {
+  outline: 2px solid #63b3ed;
+}
+
+html[data-theme="dark"] .swagger-ui .arrow {
+  fill: #a0aec0;
+}
+
+html[data-theme="dark"] .swagger-ui .response-control-media-type__accept-message {
+  color: #a0aec0;
+}
+
+html[data-theme="dark"] .swagger-ui .loading-container .loading::after {
+  color: #63b3ed;
+}
